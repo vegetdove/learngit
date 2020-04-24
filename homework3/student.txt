@@ -1,0 +1,10 @@
+001 Alice 80
+002 Bob 94
+003 Cindy 70
+004 David 20
+005 Elon 45
+006 Frank 63
+007 Git 88
+008 Helen 34
+009 Isak 99
+010 Jack 60
