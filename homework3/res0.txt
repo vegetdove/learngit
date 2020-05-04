@@ -1,0 +1,10 @@
+ha 10
+a 9
+to 8
+the 4
+very 3
+happy 2
+sad 2
+but 2
+push 1
+pracitice 1
