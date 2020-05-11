@@ -1,5 +1,7 @@
 -- ⑨ 分别统计性别为男/女的人年龄平均值
-SELECT gender,AVG(age) 
+SELECT * FROM
+(SELECT gender,AVG(age) 
 FROM students 
-GROUP BY gender
-LIMIT 2
+GROUP BY gender)
+AS total
+WHERE gender = "男" or gender = "女"
