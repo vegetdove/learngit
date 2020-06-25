@@ -1,0 +1,318 @@
+课程设计报告
+(2019—2020学年第2学期)
+
+
+实验名称：  python大作业项目设计  
+题    目：       网络爬虫         
+院    系：  控制与计算机工程学院  
+班    级：       软件1801        
+学    号：     120181080414       
+学生姓名：       王嘉承           
+指导教师：      熊建国老师        
+设计周数：         1周           
+
+成    绩：                   
+           
+日期：2020 年 06 月 24 日 
+
+一、课程设计的目的与要求
+1．目的: 应用python程序设计语言来设计相应的程序，培养学生问题求解模块的框架设计和详细设计、相关程序实现和调试能力，完成创新能力和实践能力的训练。
+2．要求: 用程序设计语言python编码，用pycharm开发平台调试。
+二、设计正文
+（一）课程设计题目
+爬虫程序：
+给定500个企业的名称，请定向爬取 天眼查，企查查，通过这些网站的搜索，得到该企业的官方网址信息
+
+（二）需求分析
+本演示程序主要分为三个部分：从数据库中进行数据提取、进行网络爬虫和将爬取结果储存在数据库中。
+1、从数据库中进行数据提取；
+从十万个数据项中选取五百项，并取出这五百条记录中的企业名称字段
+2、网络爬虫；
+利用取出的五百个企业名称在天眼查网站进行爬虫。
+3、将爬取结果储存在数据库中；
+存储结构为每条记录有两个字段，分别为企业名称与企业网址。
+
+（三）概要设计
+本程序中数据存储采用了数据库，其中每个记录字段包含企业名称和企业网址。
+本程序中包含三个模块
+1）获取企业名称函数模块 return_detail_url(company_encode)
+2）存储数据函数模块  return_weburl(detail_url)
+3）爬虫设计模块（主函数）
+
+（四）详细设计
+ 
+               1.获取企业名称函数设计
+	def return_detail_url(company_encode):
+	    url = f"https://www.tianyancha.com/search?key={company_encode}"
+	
+
+	    res = requests.get(url=url, headers=header)
+	    tree = etree.HTML(res.text)
+	    detail_url = tree.xpath('//*/div[@class="result-list sv-search-container"]/div[@class="search-item '
+	                            'sv-search-company"][1]/div[1]/div[3]/div[1]/a/@href')
+	    print(detail_url)
+	
+
+	    return detail_url
+	
+
+	2.存储数据函数设计
+
+	def return_weburl(detail_url):
+	    # detail_url = "https://www.tianyancha.com/company/3029626017"
+	    res_content = requests.get(url=detail_url, headers=header)
+	    # print(res_content.text)
+	    tree2 = etree.HTML(res_content.text)
+	    web_ur = "".join(tree2.xpath('//*/span[contains(text(), "网址：")]/following-sibling::a[1]/text()'))
+	    print(web_ur)
+	    return web_ur
+	
+
+	3.爬虫设计（主函数）
+
+	if __name__ == '__main__':
+	
+	    con_engine = pymysql.connect(host='localhost', user="root", password="0414666jy", database="qichacha", port=3306,
+	                                 charset='utf8')
+	
+
+	    # 使用cursor()方法获取游标
+	    cursor = con_engine.cursor()
+	
+
+	    # SQL语句
+	    sql_ = "select * from temp_icp_web2;"
+	    try:
+	        # 执行SQL语句
+	        cursor.execute(sql_)
+	        # fetchall()获取所有记录，形成的是元组，results = cursor.fetchmany(10)获取前10条，results = cursor.fetchone()获取一条数据
+	        results = cursor.fetchall()
+	        for row in results[246:500]:  # 依次获取每一行数据(此处是取的从246开始的500条记录)
+	            company = row[3]  # 第4列
+	
+
+	            # company = "中国华戎科技集团有限公司"
+	            company_encode = parse.quote(company)
+	
+
+	            header = {
+	                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,'
+	                          'application/signed-exchange;v=b3;q=0.9',
+	                'Accept-Encoding': 'gzip, deflate, br',
+	                'Accept-Language': 'zh-CN,zh;q=0.9',
+	                'Connection': 'keep-alive',
+	                'Cookie': '',  # 此处需填上本机登录天眼查网站后的cookie
+	                'Host': 'www.tianyancha.com',
+	                'Referer': f'https://www.tianyancha.com/search?key={company_encode}',
+	                'Sec-Fetch-Dest': 'document',
+	                'Sec-Fetch-Mode': 'navigate',
+	                'Sec-Fetch-Site': 'same-origin',
+	                'Sec-Fetch-User': '?1',
+	                'Upgrade-Insecure-Requests': '1',
+	                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+	                              'Chrome/83.0.4103.106 Safari/537.36 '
+	            }
+	
+
+	            detail_url = return_detail_url(company_encode)
+	            if detail_url == []:
+	                print("出验证码了")
+	                time.sleep(60)  # 60s用于输入验证码
+	                detail_url = return_detail_url(company_encode)
+	            time.sleep(2)
+	            detail_url = detail_url[0]
+	            print("----", detail_url)
+	            # if detail_url == "0":
+	            #     web_url = "无"
+	
+
+	            # else:
+	            web_url = return_weburl(detail_url)
+	            sql = "INSERT INTO webUrl(company,web_url) VALUES ('%s','%s')" % (company, web_url)
+	
+
+	            cursor.execute(sql)
+	            con_engine.commit()
+	            print(f"{company}----插入成功")
+	            time.sleep(3)
+	    except:
+	        print("Error: unable to fetch data")
+	    # 关闭数据库连接
+	    con_engine.close()
+	
+
+
+（五）使用说明
+1、本程序的执行文件为：spider.py
+2、使用程序需要注意的细节有：
+（1）数据库用户名及密码需更改为本机数据库用户名密码
+（2）需要在数据库中创建名为qichacha的新数据库，并在此数据库中创建新表weburl，源数据表temp_icp_web2需导入到此数据库中
+（3）爬取过程中，由于网站的保护政策，会弹出验证码进行人机验证，由于爬取总数据较少（500条）且验证频率较低，采取了人工验证的方法：遇到验证码验证请求时，程序输出“出验证码了”并休眠60s，此时人工刷新网页进行验证（5s左右）即可，程序休眠结束会继续运行
+3、爬取结果如图所示
+
+
+
+
+
+
+
+三、课程设计总结或结论
+1．完成的工作
+     通过已知企业名称进行企业网址的定向爬取，爬取后结果存储在数据库中。并简单完成了在有验证码存在情况下程序可休眠后继续从断点处开始运行。
+2．所需做的改进
+实现全程自动化，即验证等过程也可在人工干预情况下实现。
+四、参考文献及网站
+[1] 泽德A.肖. “笨方法”学python. 人民邮电出版社，第2版. 2018.06
+[2] python123.io中的爬虫项目入门案例
+[3] CSDN中文社区（csdn.net）
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+附录（设计流程图、程序、测试数据等）
+
+附录1、程序（不含cookie）
+
+
+	import time
+import requests
+	import pymysql
+	from lxml import etree
+	from urllib import parse
+	from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+	
+
+	
+
+	def return_detail_url(company_encode):
+	    url = f"https://www.tianyancha.com/search?key={company_encode}"
+	
+
+	    res = requests.get(url=url, headers=header)
+	    tree = etree.HTML(res.text)
+	    detail_url = tree.xpath('//*/div[@class="result-list sv-search-container"]/div[@class="search-item '
+	                            'sv-search-company"][1]/div[1]/div[3]/div[1]/a/@href')
+	    print(detail_url)
+	
+
+	    return detail_url
+	
+
+	
+
+	def return_weburl(detail_url):
+	    # detail_url = "https://www.tianyancha.com/company/3029626017"
+	    res_content = requests.get(url=detail_url, headers=header)
+	    # print(res_content.text)
+	    tree2 = etree.HTML(res_content.text)
+	    web_ur = "".join(tree2.xpath('//*/span[contains(text(), "网址：")]/following-sibling::a[1]/text()'))
+	    print(web_ur)
+	    return web_ur
+	
+
+	
+
+	if __name__ == '__main__':
+	    # def work(n):
+	    con_engine = pymysql.connect(host='localhost', user="root", password="0414666jy", database="qichacha", port=3306,
+	                                 charset='utf8')
+	
+
+	    # 使用cursor()方法获取游标
+	    cursor = con_engine.cursor()
+	
+
+	    # SQL语句
+	    sql_ = "select * from temp_icp_web2;"
+	    try:
+	        # 执行SQL语句
+	        cursor.execute(sql_)
+	        # fetchall()获取所有记录，形成的是元组，results = cursor.fetchmany(10)获取前10条，results = cursor.fetchone()获取一条数据
+	        results = cursor.fetchall()
+	        for row in results[246:500]:  # 依次获取每一行数据(此处是取的从246开始的500条记录)
+	            company = row[3]  # 第4列
+	
+
+	            # company = "中国华戎科技集团有限公司"
+	            company_encode = parse.quote(company)
+	
+
+	            header = {
+	                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,'
+	                          'application/signed-exchange;v=b3;q=0.9',
+	                'Accept-Encoding': 'gzip, deflate, br',
+	                'Accept-Language': 'zh-CN,zh;q=0.9',
+	                'Connection': 'keep-alive',
+	                'Cookie': '',  # 此处需填上本机登录天眼查网站后的cookie
+	                'Host': 'www.tianyancha.com',
+	                'Referer': f'https://www.tianyancha.com/search?key={company_encode}',
+	                'Sec-Fetch-Dest': 'document',
+	                'Sec-Fetch-Mode': 'navigate',
+	                'Sec-Fetch-Site': 'same-origin',
+	                'Sec-Fetch-User': '?1',
+	                'Upgrade-Insecure-Requests': '1',
+	                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+	                              'Chrome/83.0.4103.106 Safari/537.36 '
+	            }
+	
+
+	            detail_url = return_detail_url(company_encode)
+	            if detail_url == []:
+	                print("出验证码了")
+	                time.sleep(60)  # 60s用于输入验证码
+	                detail_url = return_detail_url(company_encode)
+	            time.sleep(2)
+	            detail_url = detail_url[0]
+	            print("----", detail_url)
+	            # if detail_url == "0":
+	            #     web_url = "无"
+	
+
+	            # else:
+	            web_url = return_weburl(detail_url)
+	            sql = "INSERT INTO webUrl(company,web_url) VALUES ('%s','%s')" % (company, web_url)
+	
+
+	            cursor.execute(sql)
+	            con_engine.commit()
+	            print(f"{company}----插入成功")
+	            time.sleep(3)
+	    except:
+	        print("Error: unable to fetch data")
+	    # 关闭数据库连接
+	    con_engine.close()
+	
+
+	# if __name__ == '__main__':
+	#     executor = ProcessPoolExecutor(max_workers=5)
+	#     futures = []
+	#     for i in range(5):
+	#         future = executor.submit(work, i + 1)
+	#         futures.append(future)
+	#     executor.shutdown(True)
+
+附录2、测试数据
+
+1、爬虫程序正常运行时如图
+2、网站发出验证码请求时如图
+3、报错时如图
+
+
