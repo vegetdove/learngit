@@ -50,7 +50,7 @@ if __name__ == '__main__':
         cursor.execute(sql_)
         # fetchall()获取所有记录，形成的是元组，results = cursor.fetchmany(10)获取前10条，results = cursor.fetchone()获取一条数据
         results = cursor.fetchall()
-        for row in results[246:500]:  # 依次获取每一行数据
+        for row in results[246:500]:  # 依次获取每一行数据(此处是取的从246开始的500条记录)
             company = row[3]  # 第4列
 
             # company = "中国华戎科技集团有限公司"
